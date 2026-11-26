@@ -129,9 +129,11 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
  <div class="book">
   <form id="f">
    <div class="row">
-    <div><label for="naam">Naam</label><input id="naam" required placeholder="Je naam"></div>
-    <div><label for="tel">Telefoon</label><input id="tel" type="tel" required placeholder="06 ..."></div>
+    <div><label for="naam">Naam</label><input id="naam" required placeholder="Je naam" autocomplete="name"></div>
+    <div><label for="email">E-mail</label><input id="email" type="email" required placeholder="naam@voorbeeld.nl" autocomplete="email"></div>
    </div>
+   <label for="tel">Telefoon</label><input id="tel" type="tel" required placeholder="06 ..." autocomplete="tel">
+   <input id="web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
    <div class="row">
     <div><label for="start">Startdatum</label><input id="start" type="date" required></div>
     <div><label for="weken">Aantal weken (min. 2)</label><input id="weken" type="number" min="2" max="26" value="6"></div>
@@ -147,11 +149,12 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
    <h3>Jouw reservering</h3>
    <div class="line"><span id="lw">Huur 6 weken</span><span id="lh">€150</span></div>
    <div class="line"><span id="ret">Terug op: –</span><span></span></div>
+   <p class="note" id="besch" style="margin:8px 0;opacity:1"></p>
    <div class="line"><span>Bezorgen</span><span id="lb">€0</span></div>
    <div class="line total"><span>Totaal huur</span><span id="lt">€150</span></div>
    <div class="line" style="border:0"><span>+ Borg (retour)</span><span>€100</span></div>
    <p class="note">Huur en bezorging betaal je vooraf via Tikkie, na mijn bevestiging. De borg betaal je bij de overdracht. Week 1–2 €25, week 3–6 €20, vanaf week 7 €15 per week; minimaal 2 weken. Je brengt de kniestep op de einddatum zelf terug. Je gegevens gebruik ik alleen voor deze reservering.</p>
-   <a class="btn" id="wa" href="#">Verstuur reservering per mail</a>
+   <a class="btn" id="wa" href="#">Verstuur reservering</a>
    <p class="note" id="err" style="display:none;color:#ffc9b3;opacity:1"></p>
    <div class="contact-num">Vragen, of werkt de knop niet? Mail naar<br><a href="mailto:kniestepverhuur@outlook.com" style="color:#fff">kniestepverhuur@outlook.com</a></div>
   </div>
@@ -189,6 +192,14 @@ const $=id=>document.getElementById(id);
 const f=v=>'€'+(Number.isInteger(v)?v:v.toFixed(2).replace('.',','));
 const DH=[52.0808,4.3248];
 let geo=null,tmr=null,seq=0;
+const API='__API__';
+let VOL=null,BEZIG=false,mailtoUrl='mailto:kniestepverhuur@outlook.com';
+const iso=d=>d.toISOString().slice(0,10);
+function plusD(k,n){const a=new Date(k+'T12:00:00Z');a.setUTCDate(a.getUTCDate()+n);return iso(a)}
+function vrij(s,w){if(!VOL)return true;const e=plusD(s,w*7);return !VOL.some(k=>k>=s&&k<=e)}
+function eerstVrij(s,w){for(let i=1;i<=365;i++){const k=plusD(s,i);if(vrij(k,w))return k}return null}
+const mooi=k=>new Date(k+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});
+fetch(API).then(r=>r.json()).then(d=>{VOL=d.vol||[];upd()}).catch(()=>{});
 function huurVan(w){let h=0;for(let i=1;i<=w;i++)h+=i<=2?25:(i<=6?20:15);return h}
 function afstand(a,b){const r=x=>x*Math.PI/180,R=6371,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]);const q=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
 function bezorg(){
@@ -224,21 +235,40 @@ function upd(){
  let s='(datum)',e='–';
  if($('start').value){const a=new Date($('start').value);s=a.toLocaleDateString('nl-NL',fmt);const c=new Date(a);c.setDate(c.getDate()+w*7);e=c.toLocaleDateString('nl-NL',fmt)}
  $('ret').textContent='Terug op: '+e;
+ const bs=$('besch');
+ if(!$('start').value||!VOL){bs.textContent='';bs.style.color='';}
+ else if(vrij($('start').value,w)){bs.textContent='✓ Beschikbaar in deze periode';bs.style.color='#b9f3c4';}
+ else{const n=eerstVrij($('start').value,w);bs.textContent='✗ Helaas volgeboekt in deze periode.'+(n?' Eerstvolgende mogelijke startdatum: '+mooi(n)+'.':'');bs.style.color='#ffc9b3';}
  const adr=geo&&geo.ok?geo.naam:($('adres').value||'(adres)');
- const msg='Hoi! Ik wil graag een kniestep reserveren.\nNaam: '+($('naam').value||'')+'\nTelefoon: '+($('tel').value||'')+'\nStart: '+s+'\nPeriode: '+w+' weken (terug op '+e+')\nTijdvak: '+$('slot').value+'\nBezorgadres: '+adr+'\nHuur: '+f(huur)+'\nBezorging: '+(bz===null?'nog te bepalen':f(bz)+(b?' ('+b.txt+')':''))+'\nTotaal: '+(bz===null?f(huur)+' + bezorging':f(huur+bz))+' + €100 borg\nIk ga akkoord met de huurvoorwaarden.';
- $('wa').href='mailto:kniestepverhuur@outlook.com?subject='+encodeURIComponent('Reservering kniestep'+($('naam').value?' – '+$('naam').value:''))+'&body='+encodeURIComponent(msg);
+ const msg='Hoi! Ik wil graag een kniestep reserveren.\nNaam: '+($('naam').value||'')+'\nE-mail: '+($('email').value||'')+'\nTelefoon: '+($('tel').value||'')+'\nStart: '+s+'\nPeriode: '+w+' weken (terug op '+e+')\nTijdvak: '+$('slot').value+'\nBezorgadres: '+adr+'\nHuur: '+f(huur)+'\nBezorging: '+(bz===null?'nog te bepalen':f(bz)+(b?' ('+b.txt+')':''))+'\nTotaal: '+(bz===null?f(huur)+' + bezorging':f(huur+bz))+' + €100 borg\nIk ga akkoord met de huurvoorwaarden.';
+ mailtoUrl='mailto:kniestepverhuur@outlook.com?subject='+encodeURIComponent('Reservering kniestep'+($('naam').value?' – '+$('naam').value:''))+'&body='+encodeURIComponent(msg);
+ window._res={naam:$('naam').value.trim(),email:$('email').value.trim(),tel:$('tel').value.trim(),start:$('start').value,weken:w,slot:$('slot').value,adres:adr,huur:f(huur),bezorg:bz===null?'nog te bepalen':f(bz)+(b?' ('+b.txt+')':''),totaal:(bz===null?f(huur)+' + bezorging':f(huur+bz))+' + €100 borg',web:$('web').value};
 }
-$('wa').addEventListener('click',ev=>{
+$('wa').addEventListener('click',async ev=>{
+ ev.preventDefault();
+ if(BEZIG)return;
  const mis=[];
  if(!$('naam').value.trim())mis.push('naam');
+ if(!/^\S+@\S+\.\S+$/.test($('email').value.trim()))mis.push('e-mailadres');
  if(!$('tel').value.trim())mis.push('telefoonnummer');
  if(!$('start').value)mis.push('startdatum');
  if(!$('adres').value.trim())mis.push('bezorgadres');
  if(!$('akk').checked)mis.push('akkoord met de huurvoorwaarden');
- if(mis.length){ev.preventDefault();$('err').textContent='Vul nog in: '+mis.join(', ')+'.';$('err').style.display='block';}
- else $('err').style.display='none';
+ const er=$('err');
+ if(mis.length){er.textContent='Vul nog in: '+mis.join(', ')+'.';er.style.display='block';return}
+ upd();
+ if(!vrij($('start').value,window._res.weken)){er.textContent='Deze periode is volgeboekt. Kies een andere startdatum.';er.style.display='block';return}
+ er.style.display='none';BEZIG=true;const knop=$('wa');knop.textContent='Bezig met versturen…';
+ try{
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(window._res)});
+  const d=await r.json();
+  if(d.ok){knop.style.display='none';er.style.color='#b9f3c4';er.innerHTML='<b>Gelukt, je reservering is ontvangen!</b> Ik stuur je zo snel mogelijk een bevestiging met een Tikkie voor de huur en bezorging. Je reservering is definitief zodra die betaald is.';er.style.display='block';try{window.goatcounter&&goatcounter.count({path:'reservering-verstuurd',event:true})}catch(x){}}
+  else if(d.fout==='vol'){VOL=d.vol||VOL;upd();er.textContent='Net iemand je voor: deze periode is inmiddels volgeboekt. Kies een andere startdatum.';er.style.display='block';knop.textContent='Verstuur reservering'}
+  else throw 0;
+ }catch(x){knop.textContent='Verstuur reservering';er.innerHTML='Versturen lukte niet. <a href="'+mailtoUrl+'" style="color:#fff">Stuur je reservering per mail</a>.';er.style.display='block'}
+ BEZIG=false;
 });
-['naam','tel','start','weken','slot'].forEach(i=>{$(i).addEventListener('input',upd);$(i).addEventListener('change',upd)});
+['naam','email','tel','start','weken','slot'].forEach(i=>{$(i).addEventListener('input',upd);$(i).addEventListener('change',upd)});
 $('adres').addEventListener('input',()=>{clearTimeout(tmr);tmr=setTimeout(zoek,700)});
 try{$('start').min=new Date().toISOString().slice(0,10)}catch(e){}
 upd();
