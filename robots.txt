@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://kniestepverhuur.nl/sitemap.xml

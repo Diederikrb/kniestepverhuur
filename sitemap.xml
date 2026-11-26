@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://kniestepverhuur.nl/</loc></url>
+  <url><loc>https://kniestepverhuur.nl/</loc><priority>1.0</priority></url>
+  <url><loc>https://kniestepverhuur.nl/kniestep-huren-delft/</loc><priority>0.8</priority></url>
+  <url><loc>https://kniestepverhuur.nl/kniestep-huren-rijswijk/</loc><priority>0.8</priority></url>
+  <url><loc>https://kniestepverhuur.nl/kniestep-huren-zoetermeer/</loc><priority>0.8</priority></url>
+  <url><loc>https://kniestepverhuur.nl/kniestep-huren-leidschendam-voorburg/</loc><priority>0.8</priority></url>
+  <url><loc>https://kniestepverhuur.nl/kniestep-huren-wassenaar/</loc><priority>0.8</priority></url>
+  <url><loc>https://kniestepverhuur.nl/kniestep-huren-westland/</loc><priority>0.8</priority></url>
+  <url><loc>https://kniestepverhuur.nl/kniestep-huren-pijnacker-nootdorp/</loc><priority>0.8</priority></url>
+  <url><loc>https://kniestepverhuur.nl/kniestep-huren-leiden/</loc><priority>0.8</priority></url>
 </urlset>
