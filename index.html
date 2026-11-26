@@ -82,7 +82,7 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
  <div class="grid3" style="margin-top:20px">
   <div class="card"><div class="big">€25 <small>/ week</small></div><p>Week 1–2 €25, week 3–6 €20, vanaf week 7 €15 per week. Bijvoorbeeld 4 weken €90, 6 weken €130, 8 weken €160. Minimaal 2 weken.</p></div>
   <div class="card"><div class="big">€100 <small>borg</small></div><p>Volledig retour als de kniestep schoon en in goede staat terugkomt.</p></div>
-  <div class="card"><div class="big">€15 <small>bezorgen</small></div><p>Binnen Den Haag. Elders in Zuid-Holland €15 + €0,35 per km vanaf Den Haag.</p></div>
+  <div class="card"><div class="big">€15 <small>bezorgen</small></div><p>Binnen Den Haag. Elders in Zuid-Holland €15 + €0,35 per km vanaf Den Haag; vul je adres in en je ziet het bedrag direct.</p></div>
  </div>
 </div></section>
 
@@ -132,11 +132,10 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
    </div>
    <label for="slot">Tijdvak overdracht</label>
    <select id="slot"><option>Ochtend (9-12 uur)</option><option>Middag (12-17 uur)</option><option>Avond (17-20 uur)</option></select>
-   <label for="lev">Bezorgen</label>
-   <select id="lev"><option value="15">Bezorgen binnen Den Haag (+€15)</option><option value="-1">Bezorgen elders in Zuid-Holland (€15 + €0,35/km)</option></select>
-   <div id="adrrow" style="display:none"><label for="adres">Bezorgadres</label><input id="adres" placeholder="Straat, huisnummer, postcode, plaats"></div>
+   <label for="adres">Bezorgadres</label>
+   <input id="adres" placeholder="Straat en huisnummer, plaats (of postcode + huisnummer)" autocomplete="street-address">
+   <p class="note" id="adrinfo" style="margin:6px 0 0;font-size:.88rem;color:var(--muted)">Vul je adres in, dan rekenen we de bezorgkosten direct uit.</p>
    <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin-top:18px"><input id="akk" type="checkbox" style="width:auto;margin-top:4px"> <span>Ik ga akkoord met de <a href="#voorwaarden">huurvoorwaarden</a></span></label>
-   <div id="kmrow" class="row" style="display:none"><div><label for="km">Afstand vanaf Den Haag (km)</label><input id="km" type="number" min="0" max="200" value="20"></div></div>
   </form>
   <div class="sum">
    <h3>Jouw reservering</h3>
@@ -181,34 +180,59 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
 <script>
 const $=id=>document.getElementById(id);
 const f=v=>'€'+(Number.isInteger(v)?v:v.toFixed(2).replace('.',','));
+const DH=[52.0808,4.3248];
+let geo=null,tmr=null,seq=0;
+function huurVan(w){let h=0;for(let i=1;i<=w;i++)h+=i<=2?25:(i<=6?20:15);return h}
+function afstand(a,b){const r=x=>x*Math.PI/180,R=6371,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]);const q=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
+function bezorg(){
+ if(!geo||!geo.ok)return null;
+ if(geo.gem==="'s-Gravenhage")return {bz:15,txt:'binnen Den Haag'};
+ if(geo.prov!=='Zuid-Holland')return {bz:null,txt:'buiten Zuid-Holland'};
+ const km=Math.round(afstand(DH,geo.pt)*1.3);
+ return {bz:Math.round((15+km*0.35)*2)/2,txt:'ca. '+km+' km vanaf Den Haag',km};
+}
+async function zoek(){
+ const q=$('adres').value.trim(),n=++seq;
+ if(q.length<6){geo=null;$('adrinfo').textContent='Vul je adres in, dan rekenen we de bezorgkosten direct uit.';upd();return}
+ $('adrinfo').textContent='Adres zoeken…';
+ try{
+  const r=await fetch('https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?rows=1&fq=type:adres&fl=weergavenaam,centroide_ll,gemeentenaam,provincienaam&q='+encodeURIComponent(q));
+  const d=(await r.json()).response.docs[0];
+  if(n!==seq)return;
+  if(!d){geo={ok:false};$('adrinfo').textContent='Adres niet gevonden. Controleer straat, huisnummer en plaats.';upd();return}
+  const m=d.centroide_ll.match(/POINT\(([\d.]+) ([\d.]+)\)/);
+  geo={ok:true,naam:d.weergavenaam,gem:d.gemeentenaam,prov:d.provincienaam,pt:[parseFloat(m[2]),parseFloat(m[1])]};
+  const b=bezorg();
+  $('adrinfo').textContent='Gevonden: '+geo.naam+(b.bz===null?' — buiten Zuid-Holland bezorg ik helaas niet. Mail gerust voor de mogelijkheden.':' — '+b.txt+'.');
+ }catch(e){geo=null;$('adrinfo').textContent='Bezorgkosten konden niet worden berekend; ik reken ze na je aanvraag uit.'}
+ upd();
+}
 function upd(){
- const w=Math.max(2,parseInt($('weken').value)||2), d=parseInt($('lev').value);
- let huur=0;for(let i=1;i<=w;i++)huur+=i<=2?25:(i<=6?20:15);
+ const w=Math.max(2,parseInt($('weken').value)||2);
+ const huur=huurVan(w);
  $('lw').textContent='Huur '+w+' weken'; $('lh').textContent=f(huur);
- const km=Math.max(0,parseFloat($('km').value)||0);
- $('kmrow').style.display=d<0?'grid':'none';
- $('adrrow').style.display=d!==0?'block':'none';
- const bz=d<0?15+km*0.35:(d>0?d:0);
- $('lb').textContent=f(bz); $('lt').textContent=f(huur+bz);
- const lev=$('lev').options[$('lev').selectedIndex].text;
+ const b=bezorg(), bz=b&&b.bz!==null?b.bz:null;
+ $('lb').textContent=bz===null?'n.t.b.':f(bz); $('lt').textContent=bz===null?f(huur)+' + bezorging':f(huur+bz);
  const fmt={weekday:'long',day:'numeric',month:'long'};
  let s='(datum)',e='–';
- if($('start').value){const a=new Date($('start').value);s=a.toLocaleDateString('nl-NL',fmt);const b=new Date(a);b.setDate(b.getDate()+w*7);e=b.toLocaleDateString('nl-NL',fmt)}
+ if($('start').value){const a=new Date($('start').value);s=a.toLocaleDateString('nl-NL',fmt);const c=new Date(a);c.setDate(c.getDate()+w*7);e=c.toLocaleDateString('nl-NL',fmt)}
  $('ret').textContent='Terug op: '+e;
- const msg='Hoi! Ik wil graag de kniestep reserveren.\nNaam: '+($('naam').value||'')+'\nTelefoon: '+($('tel').value||'')+'\nStart: '+s+'\nPeriode: '+w+' weken (terug op '+e+')\nTijdvak: '+$('slot').value+'\n'+lev+(d!==0?'\nAdres: '+($('adres').value||'(adres)'):'')+(d<0?' (ca. '+km+' km)':'')+'\nTotaal huur: '+f(huur+bz)+' + €100 borg\nIk ga akkoord met de huurvoorwaarden.';
+ const adr=geo&&geo.ok?geo.naam:($('adres').value||'(adres)');
+ const msg='Hoi! Ik wil graag een kniestep reserveren.\nNaam: '+($('naam').value||'')+'\nTelefoon: '+($('tel').value||'')+'\nStart: '+s+'\nPeriode: '+w+' weken (terug op '+e+')\nTijdvak: '+$('slot').value+'\nBezorgadres: '+adr+'\nHuur: '+f(huur)+'\nBezorging: '+(bz===null?'nog te bepalen':f(bz)+(b?' ('+b.txt+')':''))+'\nTotaal: '+(bz===null?f(huur)+' + bezorging':f(huur+bz))+' + €100 borg\nIk ga akkoord met de huurvoorwaarden.';
  $('wa').href='mailto:kniestepverhuur@outlook.com?subject='+encodeURIComponent('Reservering kniestep'+($('naam').value?' – '+$('naam').value:''))+'&body='+encodeURIComponent(msg);
 }
 $('wa').addEventListener('click',ev=>{
- const d=parseInt($('lev').value),mis=[];
+ const mis=[];
  if(!$('naam').value.trim())mis.push('naam');
  if(!$('tel').value.trim())mis.push('telefoonnummer');
  if(!$('start').value)mis.push('startdatum');
- if(d!==0&&!$('adres').value.trim())mis.push('bezorgadres');
+ if(!$('adres').value.trim())mis.push('bezorgadres');
  if(!$('akk').checked)mis.push('akkoord met de huurvoorwaarden');
  if(mis.length){ev.preventDefault();$('err').textContent='Vul nog in: '+mis.join(', ')+'.';$('err').style.display='block';}
  else $('err').style.display='none';
 });
-['naam','tel','start','weken','slot','lev','adres','km'].forEach(i=>{$(i).addEventListener('input',upd);$(i).addEventListener('change',upd)});
+['naam','tel','start','weken','slot'].forEach(i=>{$(i).addEventListener('input',upd);$(i).addEventListener('change',upd)});
+$('adres').addEventListener('input',()=>{clearTimeout(tmr);tmr=setTimeout(zoek,700)});
 try{$('start').min=new Date().toISOString().slice(0,10)}catch(e){}
 upd();
 </script>
