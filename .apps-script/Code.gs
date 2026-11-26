@@ -47,7 +47,7 @@ function doPost(e) {
       'Naam: ' + p.naam + '\nE-mail: ' + p.email + '\nTelefoon: ' + (p.tel || '-') +
       '\nStart: ' + p.start + '\nTerug: ' + eind + ' (' + w + ' weken)\nTijdvak: ' + (p.slot || '') +
       '\nAdres: ' + p.adres + '\nHuur: ' + (p.huur || '') + '\nBezorging: ' + (p.bezorg || '') + '\nTotaal: ' + (p.totaal || '') +
-      '\n\nAnnuleert de klant? Zet in de sheet bij Status "geannuleerd".\n' + SpreadsheetApp.getActive().getUrl();
+      '\n\nDe klant is doorgestuurd naar bunq.me om te betalen. Controleer of de betaling binnen is.\nAnnuleert de klant? Zet in de sheet bij Status "geannuleerd".\n' + SpreadsheetApp.getActive().getUrl();
     MailApp.sendEmail({ to: MAIL, replyTo: p.email, subject: 'Reservering kniestep – ' + p.naam + ' – ' + p.start, body: body, name: 'Kniestep Verhuur' });
     return uit({ ok: true, eind: eind });
   } finally { lock.releaseLock(); }
