@@ -10,6 +10,7 @@ const BUNQ = 'https://bunq.me/DRB/';
 const SITE = 'https://kniestepverhuur.nl';
 const MAX_PER_DAG = 12; // rem tegen misbruik: daarna geen automatische klantmails meer
 const KOP = ['Ontvangen', 'Naam', 'Telefoon', 'E-mail', 'Start', 'Terug', 'Weken', 'Tijdvak', 'Adres', 'Huur', 'Bezorging', 'Totaal', 'Status', 'Taal', 'Ophalen', 'Herinnering', 'Review'];
+const DH = [52.0808, 4.3248];
 const SLOTS = [[/ochtend|morning/i, 9, 12], [/middag|afternoon/i, 12, 17], [/avond|evening/i, 17, 20]];
 
 function prop(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
@@ -33,11 +34,35 @@ function volleDagen() {
   const s = blad(), n = s.getLastRow(), tel = {};
   if (n < 2) return [];
   s.getRange(2, 1, n - 1, 13).getValues().forEach(r => {
-    if (/annul/i.test(String(r[12])) || !r[4] || !r[5]) return;
+    if (/annul|verlopen/i.test(String(r[12])) || !r[4] || !r[5]) return;
     for (let k = dag(r[4]), eind = dag(r[5]); k <= eind; k = plus(k, 1)) tel[k] = (tel[k] || 0) + 1;
   });
   const vandaag = dag(new Date());
   return Object.keys(tel).filter(k => tel[k] >= CAP && k >= vandaag).sort();
+}
+
+// Prijs altijd op de server berekenen; het bedrag uit de browser is niet te vertrouwen.
+function huurVan(w) { let h = 0; for (let i = 1; i <= w; i++) h += i <= 2 ? 25 : (i <= 6 ? 20 : 15); return h; }
+function euro(v) { return '€' + (Number.isInteger(v) ? v : v.toFixed(2).replace('.', ',')); }
+function geoZoek(adres) {
+  try {
+    const u = 'https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?rows=1&fq=type:adres&fl=weergavenaam,centroide_ll,gemeentenaam,provincienaam&q=' + encodeURIComponent(adres);
+    const d = JSON.parse(UrlFetchApp.fetch(u, { muteHttpExceptions: true }).getContentText()).response.docs[0];
+    if (!d) return null;
+    const m = d.centroide_ll.match(/POINT\(([\d.]+) ([\d.]+)\)/);
+    return { naam: d.weergavenaam, gem: d.gemeentenaam, prov: d.provincienaam, pt: [parseFloat(m[2]), parseFloat(m[1])] };
+  } catch (x) { return null; }
+}
+function km(a, b) { const r = x => x * Math.PI / 180, R = 6371, dl = r(b[0] - a[0]), dn = r(b[1] - a[1]); const q = Math.sin(dl / 2) ** 2 + Math.cos(r(a[0])) * Math.cos(r(b[0])) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(q)); }
+// Geeft {bz, op} (null = onbekend) of {buiten:true}
+function bezorgkosten(adres, w, ophalen) {
+  const g = geoZoek(adres);
+  if (!g) return { bz: null, op: null };
+  if (g.prov !== 'Zuid-Holland') return { buiten: true };
+  const dh = g.gem === "'s-Gravenhage";
+  const bz = dh ? 15 : Math.round((15 + Math.round(km(DH, g.pt) * 1.3) * 0.35) * 2) / 2;
+  const op = !ophalen ? 0 : (dh && w >= 6 ? 0 : bz);
+  return { bz, op };
 }
 
 function uit(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
@@ -56,7 +81,9 @@ function doPost(e) {
   const email = netjes(p.email, 120);
   if (!/^\S+@\S+\.\S+$/.test(email)) return uit({ ok: false, fout: 'onvolledig' });
   const startOk = /^\d{4}-\d{2}-\d{2}$/.test(p.start || '');
-  const w = Math.max(2, Math.min(26, parseInt(p.weken, 10) || 0));
+  const wIn = parseInt(p.weken, 10);
+  if (p.type !== 'wachtlijst' && !(wIn >= 2 && wIn <= 26)) return uit({ ok: false, fout: 'weken' });
+  const w = Math.max(2, Math.min(26, wIn || 0));
 
   if (p.type === 'wachtlijst') {
     if (!startOk) return uit({ ok: false, fout: 'onvolledig' });
@@ -69,8 +96,15 @@ function doPost(e) {
   if (!naam || !startOk || !adres) return uit({ ok: false, fout: 'onvolledig' });
   if (p.start < dag(new Date())) return uit({ ok: false, fout: 'onvolledig' });
   const en = p.taal === 'en', ophalen = !!p.ophalen;
-  const slot = netjes(p.slot, 40), huur = netjes(p.huur, 20), bezorg = netjes(p.bezorg, 90), totaal = netjes(p.totaal, 60);
-  const bedrag = Number(p.bedrag) > 0 && Number(p.bedrag) < 1500 ? Number(p.bedrag) : 0;
+  const slot = netjes(p.slot, 40);
+  const hu = huurVan(w), k = bezorgkosten(adres, w, ophalen);
+  if (k.buiten) return uit({ ok: false, fout: 'buiten' });
+  const bekend = k.bz !== null;
+  const bedrag = bekend ? hu + k.bz + k.op : 0;
+  const huur = euro(hu);
+  const bezorg = bekend ? euro(k.bz) + (ophalen ? ' + ophalen ' + (k.op ? euro(k.op) : 'gratis') : ' / zelf terugbrengen') : 'nog te bepalen';
+  const totaal = (bekend ? euro(bedrag) : euro(hu) + ' + bezorging') + ' + €40 borg';
+  if (bekend && Number(p.bedrag) && Math.abs(Number(p.bedrag) - bedrag) > 0.01) console.warn('Bedrag browser wijkt af', p.bedrag, bedrag, adres);
   const eind = plus(p.start, w * 7);
   const link = bedrag ? BUNQ + bedrag.toFixed(2) + '/' + encodeURIComponent('Kniestep ' + naam + ' ' + p.start) : '';
   const lock = LockService.getScriptLock();
@@ -91,7 +125,7 @@ function doPost(e) {
     try { mailKlant(R); } catch (x) { console.error(x); }
     try { agenda(R); } catch (x) { console.error(x); }
   }
-  return uit({ ok: true, eind: eind });
+  return uit({ ok: true, eind: eind, bedrag: bedrag, link: link });
 }
 
 function mailEigenaar(R, druk) {
@@ -170,7 +204,7 @@ function dagelijks() {
   const v = dag(new Date()), over3 = plus(v, 3), gisteren = plus(v, -1), review = prop('REVIEW_URL');
   const verl = 'mailto:' + MAIL + '?subject=Kniestep%20verlengen';
   s.getRange(2, 1, n - 1, 17).getValues().forEach((r, i) => {
-    if (/annul/i.test(String(r[12])) || !r[3] || !r[5]) return;
+    if (/annul|verlopen/i.test(String(r[12])) || !r[3] || !r[5]) return;
     const eind = dag(r[5]), en = r[13] === 'en', naam = r[1], rij = i + 2;
     if (eind === over3 && !r[15]) {
       MailApp.sendEmail({
@@ -199,4 +233,24 @@ function setup() {
   blad(); wachtblad();
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'dagelijks').forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('dagelijks').timeBased().everyDays(1).atHour(9).inTimezone(TZ).create();
+}
+
+// OPTIONEEL (staat uit): niet-betaalde reserveringen automatisch vrijgeven.
+// Werkwijze: zet in kolom M (Status) "betaald" zodra de bunq-betaling binnen is. Stel scripteigenschap
+// ONBETAALD_VERVAL_UUR in (bijv. 12) en voer setupVrijgeven() eenmalig uit. Reserveringen zonder status
+// die ouder zijn dan dat aantal uur krijgen status "verlopen (niet betaald)" en tellen niet meer mee voor de bezetting.
+function vrijgevenOnbetaald() {
+  const uur = Number(prop('ONBETAALD_VERVAL_UUR')); if (!uur) return;
+  const s = blad(), n = s.getLastRow(); if (n < 2) return;
+  const grens = Date.now() - uur * 3600e3;
+  s.getRange(2, 1, n - 1, 13).getValues().forEach((r, i) => {
+    if (!String(r[12]).trim() && r[0] && new Date(r[0]).getTime() < grens) {
+      s.getRange(i + 2, 13).setValue('verlopen (niet betaald)');
+      MailApp.sendEmail({ to: MAIL, name: 'Kniestep Verhuur', subject: 'Reservering vrijgegeven (niet betaald) – ' + r[1], body: 'De reservering van ' + r[1] + ' (start ' + dag(r[4]) + ') is na ' + uur + ' uur zonder status "betaald" vrijgegeven. Klopt dat niet? Zet de status terug op leeg of "betaald".' });
+    }
+  });
+}
+function setupVrijgeven() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'vrijgevenOnbetaald').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('vrijgevenOnbetaald').timeBased().everyHours(1).create();
 }

@@ -66,6 +66,10 @@ details{background:#fff;border:1px solid var(--line);border-radius:14px;padding:
 summary{font-weight:600;cursor:pointer}
 details p{color:var(--muted);margin:.6em 0 0}
 footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
+.top>span{display:flex;align-items:center;gap:14px;flex-wrap:nowrap}
+#akk{width:22px!important;height:22px;accent-color:var(--accent)}
+.mbar{display:none}
+@media(max-width:780px){.top .btn{padding:9px 16px;font-size:.95rem}.photo{aspect-ratio:4/3;max-height:300px}.mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 20px -10px rgba(31,42,55,.25)}.mbar .btn{padding:11px 18px}.mbar.weg{display:none}body{padding-bottom:72px}}
 @media(max-width:780px){.hero,.book{grid-template-columns:1fr}.grid3,.steps{grid-template-columns:1fr}.features{grid-template-columns:1fr}.hero{padding-top:10px}}
 </style>
 </head>
@@ -77,7 +81,7 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
   <div class="price-tag">Offer: 6 weeks for €130</div>
   <h1>Knee scooter rental in The Hague</h1>
   <p class="lead">Use a knee scooter (knee walker) instead of crutches. With air tyres and a basket you get around easily, indoors and outdoors. Often at your door within 24 hours, ready to ride and adjusted to your height.</p>
-  <div class="ctas"><a class="btn" href="#reserveren">Book now</a><a class="btn ghost" href="#prijzen">Prices</a></div>
+  <div class="ctas"><a class="btn" href="#reserveren">Check availability</a><a class="btn ghost" href="#prijzen">Prices</a></div>
  </div>
  <div class="photo"><img src="/kniestep-orthomate.jpg" width="1000" height="1250" alt="Knee scooter for rent in The Hague, with air tyres and knee pad" style="background:#f6f1ea"></div>
 </div>
@@ -92,27 +96,12 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
  </div>
 </div></section>
 
-<section><div class="wrap">
- <h2>Why this knee scooter?</h2>
- <ul class="features" style="margin-top:22px">
-  <li>Air tyres: more comfortable and suitable for outdoors</li>
-  <li>Basket for your things</li>
-  <li>Soft, comfortable knee pad</li>
-  <li>Hand brake with parking position</li>
-  <li>Height adjustable, for people from 1.48 to 1.92 m</li>
-  <li>Maximum user weight 159 kg</li>
-  <li>Foldable: easy to take in the car or on a trip</li>
- </ul>
- <h3 style="margin-top:34px">Is it suitable for me?</h3>
- <p style="color:var(--muted)">You need to be able to bend your knee 90 degrees and stand steadily on your other leg. A knee scooter is not suitable for stairs. If in doubt, ask your doctor or physiotherapist.</p>
-</div></section>
-
 <section class="alt"><div class="wrap">
  <h2>How it works</h2>
  <div class="grid3" style="margin-top:20px">
   <div class="card"><h3>Book</h3><p>Choose your start date, number of weeks, delivery address and time slot. You see right away whether a knee scooter is available, and you pay online with iDEAL.</p></div>
   <div class="card"><h3>Delivery</h3><p>I bring the knee scooter to your home and adjust it to your height: €15 within The Hague, elsewhere in Zuid-Holland €15 + €0.35 per km.</p></div>
-  <div class="card"><h3>Return or collection</h3><p>Done? Bring it back, or have it collected: €15 in The Hague, free from 6 weeks of rental. You get your full deposit back.</p></div>
+  <div class="card"><h3>Return or collection</h3><p>Done? Bring it back, or have it collected: €15 in The Hague, free in The Hague from 6 weeks of rental. Outside The Hague the delivery fee applies. You get your full deposit back.</p></div>
  </div>
 </div></section>
 
@@ -122,15 +111,16 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
  <div class="book">
   <form id="f">
    <div class="row">
+    <div><label for="start">Start date</label><input id="start" type="date" required></div>
+    <div><label for="weken">Number of weeks (min. 2)</label><input id="weken" type="number" min="2" max="26" value="6"></div>
+   </div>
+   <p class="note" id="beschf" role="status" aria-live="polite" style="margin:8px 0 0;font-size:.92rem;font-weight:500"></p>
+   <div class="row">
     <div><label for="naam">Name</label><input id="naam" required placeholder="Your name" autocomplete="name"></div>
     <div><label for="email">Email</label><input id="email" type="email" required placeholder="name@example.com" autocomplete="email"></div>
    </div>
    <label for="tel">Phone</label><input id="tel" type="tel" required placeholder="06 ..." autocomplete="tel">
    <input id="web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
-   <div class="row">
-    <div><label for="start">Start date</label><input id="start" type="date" required></div>
-    <div><label for="weken">Number of weeks (min. 2)</label><input id="weken" type="number" min="2" max="26" value="6"></div>
-   </div>
    <label for="slot">Delivery time slot</label>
    <select id="slot"><option>Morning (9-12)</option><option>Afternoon (12-17)</option><option>Evening (17-20)</option></select>
    <label for="adres">Delivery address</label>
@@ -149,12 +139,27 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
    <div class="line" id="oprow" style="display:none"><span>Collection afterwards</span><span id="lo">€0</span></div>
    <div class="line total"><span>Total rent</span><span id="lt">€130</span></div>
    <div class="line" style="border:0"><span>+ Deposit (refunded)</span><span>€40</span></div>
-   <p class="note">You pay rent and delivery right after booking with iDEAL. The deposit is paid at handover. Collection afterwards: €15 in The Hague, free from 6 weeks. I only use your details for this booking; see the <a href="/privacy/" style="color:#fff">privacy statement</a> (Dutch).</p>
-   <a class="btn" id="wa" href="#">Send booking</a>
+   <p class="note">You pay rent and delivery right after booking with iDEAL. The deposit is paid at handover. Collection afterwards: €15 in The Hague, free in The Hague from 6 weeks; elsewhere the delivery fee. I only use your details for this booking; see the <a href="/privacy/" style="color:#fff">privacy statement</a> (Dutch).</p>
+   <a class="btn" id="wa" href="#">Book and continue to payment</a>
    <p class="note" id="err" style="display:none;color:#ffc9b3;opacity:1"></p>
    <div class="contact-num">Questions, or is the button not working? Email<br><a href="mailto:kniestepverhuur@outlook.com" style="color:#fff">kniestepverhuur@outlook.com</a></div>
   </div>
  </div>
+</div></section>
+
+<section><div class="wrap">
+ <h2>Why this knee scooter?</h2>
+ <ul class="features" style="margin-top:22px">
+  <li>Air tyres: more comfortable and suitable for outdoors</li>
+  <li>Basket for your things</li>
+  <li>Soft, comfortable knee pad</li>
+  <li>Hand brake with parking position</li>
+  <li>Height adjustable, for people from 1.48 to 1.92 m</li>
+  <li>Maximum user weight 159 kg</li>
+  <li>Foldable: easy to take in the car or on a trip</li>
+ </ul>
+ <h3 style="margin-top:34px">Is it suitable for me?</h3>
+ <p style="color:var(--muted)">You need to be able to bend your knee 90 degrees and stand steadily on your other leg. A knee scooter is not suitable for stairs. If in doubt, ask your doctor or physiotherapist.</p>
 </div></section>
 
 <section id="terms"><div class="wrap" style="max-width:760px">
@@ -178,8 +183,8 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
  <details><summary>Will my health insurance reimburse the rent?</summary><p>That depends on your policy. Ask your insurer. I can give you a proof of payment on request, but I cannot guarantee reimbursement.</p></details>
  <details><summary>Do you deliver outside The Hague?</summary><p>Yes, in all of Zuid-Holland, for example Delft, Leiden, Rijswijk, Zoetermeer and Wassenaar. The fee is €15 + €0.35 per km from The Hague.</p></details>
 </div></section>
-
 <footer><p style="margin:0 0 10px"><a href="/">Nederlands</a> · <a href="/privacy/">Privacy</a></p>Kniestep Verhuur · knee scooter rental The Hague · <a href="mailto:kniestepverhuur@outlook.com">kniestepverhuur@outlook.com</a></footer>
+<div class="mbar" id="mbar"><span style="font-weight:600">Knee scooter from €25/week</span><a class="btn" href="#reserveren">Availability</a></div>
 <script>
 const $=id=>document.getElementById(id);
 const f=v=>'€'+(Number.isInteger(v)?v:v.toFixed(2).replace('.',','));
@@ -188,7 +193,7 @@ let geo=null,tmr=null,seq=0;
 const API='https://script.google.com/macros/s/AKfycbyXEsm0FZnLzryDJ0XtMsG_kruEQgiyFeh71sLoZawju5v-WsFZ9upK3B1yFrUmROWt/exec';
 const LANG='en';
 const BUNQ='https://bunq.me/DRB/';
-let VOL=null,BEZIG=false,mailtoUrl='mailto:kniestepverhuur@outlook.com';
+let wkMsg='',VOL=null,BEZIG=false,mailtoUrl='mailto:kniestepverhuur@outlook.com';
 const iso=d=>d.toISOString().slice(0,10);
 function plusD(k,n){const a=new Date(k+'T12:00:00Z');a.setUTCDate(a.getUTCDate()+n);return iso(a)}
 function vrij(s,w){if(!VOL)return true;const e=plusD(s,w*7);return !VOL.some(k=>k>=s&&k<=e)}
@@ -204,15 +209,17 @@ function bezorg(){
  const km=Math.round(afstand(DH,geo.pt)*1.3);
  return {bz:Math.round((15+km*0.35)*2)/2,txt:'approx. '+km+' km from The Hague',km};
 }
+function klopt(q,naam){const n=naam.toLowerCase().replace(/\s/g,''),pc=q.replace(/\s/g,'').match(/\d{4}[a-z]{2}/i);if(pc)return n.includes(pc[0].toLowerCase());const s=(q.toLowerCase().match(/[a-z\u00e0-\u00ff'.-]{3,}/)||[''])[0];return !!s&&n.includes(s.replace(/\s/g,''))}
 async function zoek(){
  const q=$('adres').value.trim(),n=++seq;
  if(q.length<6){geo=null;$('adrinfo').textContent='Enter your address to see the delivery fee.';upd();return}
  $('adrinfo').textContent='Looking up address…';
  try{
   const r=await fetch('https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?rows=1&fq=type:adres&fl=weergavenaam,centroide_ll,gemeentenaam,provincienaam&q='+encodeURIComponent(q));
-  const d=(await r.json()).response.docs[0];
+  let d=(await r.json()).response.docs[0];
   if(n!==seq)return;
-  if(!d){geo={ok:false};$('adrinfo').textContent='Address not found. Please check street, house number and town.';upd();return}
+  if(d&&!klopt(q,d.weergavenaam))d=null;
+  if(!d){geo={ok:false};$('adrinfo').textContent='Address not found. Please check street, house number and town (or enter postcode + house number).';upd();return}
   const m=d.centroide_ll.match(/POINT\(([\d.]+) ([\d.]+)\)/);
   geo={ok:true,naam:d.weergavenaam,gem:d.gemeentenaam,prov:d.provincienaam,pt:[parseFloat(m[2]),parseFloat(m[1])]};
   const b=bezorg();
@@ -221,7 +228,8 @@ async function zoek(){
  upd();
 }
 function upd(){
- const w=Math.max(2,parseInt($('weken').value)||2);
+ const raw=parseInt($('weken').value),w=Math.min(26,Math.max(2,raw||2));
+ wkMsg=raw<2?'Minimum 2 weeks: I have calculated 2 weeks.':(raw>26?'Maximum 26 weeks online. Need longer? Email me.':'');
  const huur=huurVan(w);
  $('lw').textContent='Rent '+w+' weeks'; $('lh').textContent=f(huur);
  const b=bezorg(), bz0=b&&b.bz!==null?b.bz:null, oph=$('retour').value==='1';
@@ -238,6 +246,7 @@ function upd(){
  if(!$('start').value||!VOL){bs.textContent='';bs.style.color='';}
  else if(vrij($('start').value,w)){bs.textContent='✓ Available in this period'+(snel?'. Note: if your rental starts within 24 hours, you can no longer cancel.':'');bs.style.color='#b9f3c4';}
  else{const n=eerstVrij($('start').value,w);bs.textContent='✗ Sorry, fully booked in this period.'+(n?' Next possible start date: '+mooi(n)+'.':'');bs.style.color='#ffc9b3';const wb=document.createElement('a');wb.href='#';wb.textContent=' Put me on the waiting list';wb.style.color='#fff';wb.onclick=wacht;bs.appendChild(wb);}
+ const bf=$('beschf');bf.textContent=(wkMsg?wkMsg+' ':'')+(bs.firstChild?bs.firstChild.textContent:'');bf.style.color=bs.textContent.startsWith('✗')?'#b4471c':(bs.textContent?'#1f8a5b':'');
  const adr=geo&&geo.ok?geo.naam:($('adres').value||'(adres)');
  const msg='Hoi! Ik wil graag een kniestep reserveren.\nNaam: '+($('naam').value||'')+'\nE-mail: '+($('email').value||'')+'\nTelefoon: '+($('tel').value||'')+'\nStart: '+s+'\nPeriode: '+w+' weken (terug op '+e+')\nTijdvak: '+$('slot').value+'\nBezorgadres: '+adr+'\nHuur: '+f(huur)+'\nBezorging: '+(bz0===null?'to be determined':f(bz0)+(b?' ('+b.txt+')':''))+'\nNa afloop: '+(oph?'ophalen'+(op===null?'':' ('+(op===0?'free':f(op))+')'):'zelf terugbrengen')+'\nTotaal: '+(bz===null?f(huur)+' + delivery':f(huur+bz))+' + €40 borg\nIk ga akkoord met de huurvoorwaarden.';
  mailtoUrl='mailto:kniestepverhuur@outlook.com?subject='+encodeURIComponent('Reservering kniestep'+($('naam').value?' – '+$('naam').value:''))+'&body='+encodeURIComponent(msg);
@@ -257,30 +266,35 @@ $('wa').addEventListener('click',async ev=>{
  const mis=[];
  if(!$('naam').value.trim())mis.push('name');
  if(!/^\S+@\S+\.\S+$/.test($('email').value.trim()))mis.push('email address');
- if(!$('tel').value.trim())mis.push('phone number');
+ if($('tel').value.replace(/\D/g,'').length<9)mis.push('valid phone number');
  if(!$('start').value)mis.push('start date');
  if(!$('adres').value.trim())mis.push('delivery address');
  if(!$('akk').checked)mis.push('agreement to the rental terms');
  const er=$('err');er.style.color='#ffc9b3';
  if(mis.length){er.textContent='Still missing: '+mis.join(', ')+'.';er.style.display='block';return}
  upd();
+ const bzc=bezorg();
+ if(geo&&!geo.ok){er.textContent='Please check your delivery address: it was not found.';er.style.display='block';return}
+ if(bzc&&bzc.bz===null){er.textContent='I only deliver in Zuid-Holland. Feel free to email me.';er.style.display='block';return}
  if(!vrij($('start').value,window._res.weken)){er.textContent='This period is fully booked. Please choose another start date.';er.style.display='block';return}
  er.style.display='none';BEZIG=true;const knop=$('wa');knop.textContent='Sending…';
  try{
   const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(window._res)});
   const d=await r.json();
-  if(d.ok){knop.style.display='none';er.style.color='#b9f3c4';const R=window._res;
-   if(R.bedrag){const url=BUNQ+R.bedrag.toFixed(2)+'/'+encodeURIComponent('Kniestep '+R.naam+' '+R.start);
+  if(d.ok){knop.style.display='none';er.style.color='#b9f3c4';const R=window._res;if(typeof d.bedrag==='number')R.bedrag=d.bedrag||null;
+   if(R.bedrag){const url=d.link||BUNQ+R.bedrag.toFixed(2)+'/'+encodeURIComponent('Kniestep '+R.naam+' '+R.start);
     er.innerHTML='<b>Done, your booking has been received!</b> Complete it by paying '+f(R.bedrag)+' now with iDEAL. Your booking is final once the payment has arrived.<br><a class="btn" href="'+url+'" target="_blank" rel="noopener" style="margin-top:12px;display:inline-block">Pay '+f(R.bedrag)+' now</a>';}
    else er.innerHTML='<b>Done, your booking has been received!</b> I will calculate the delivery fee and send you a payment link. Your booking is final once it is paid.';er.style.display='block';try{window.goatcounter&&goatcounter.count({path:'reservering-verstuurd',event:true})}catch(x){}}
-  else if(d.fout==='vol'){VOL=d.vol||VOL;upd();er.textContent='Someone just beat you to it: this period is now fully booked. Please choose another start date.';er.style.display='block';knop.textContent='Send booking'}
+  else if(d.fout==='vol'){VOL=d.vol||VOL;upd();er.textContent='Someone just beat you to it: this period is now fully booked. Please choose another start date.';er.style.display='block';knop.textContent='Book and continue to payment'}
   else throw 0;
- }catch(x){knop.textContent='Send booking';er.innerHTML='Sending failed. <a href="'+mailtoUrl+'" style="color:#fff">Send your booking by email</a>.';er.style.display='block'}
+ }catch(x){knop.textContent='Book and continue to payment';er.innerHTML='Sending failed. <a href="'+mailtoUrl+'" style="color:#fff">Send your booking by email</a>.';er.style.display='block'}
  BEZIG=false;
 });
 ['naam','email','tel','start','weken','slot','retour'].forEach(i=>{$(i).addEventListener('input',upd);$(i).addEventListener('change',upd)});
+$('weken').addEventListener('blur',()=>{const v=parseInt($('weken').value);$('weken').value=Math.min(26,Math.max(2,v||2));upd()});
 $('adres').addEventListener('input',()=>{clearTimeout(tmr);tmr=setTimeout(zoek,700)});
 try{$('start').min=new Date().toISOString().slice(0,10)}catch(e){}
+try{new IntersectionObserver(e=>$('mbar').classList.toggle('weg',e.some(x=>x.isIntersecting))).observe($('reserveren'))}catch(e){}
 upd();
 </script>
 <script data-goatcounter="https://kniestepverhuur.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
