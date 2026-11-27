@@ -70,7 +70,6 @@ details p{color:var(--muted);margin:.6em 0 0}
 footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
 .top>span{display:flex;align-items:center;gap:14px;flex-wrap:nowrap;margin-left:12px}
 #akk{width:22px!important;height:22px;accent-color:var(--accent)}
-.rev{margin:0}.revs{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.rev blockquote{margin:0 0 12px;font-size:1.02rem}.rev .wie{color:var(--muted);font-size:.92rem}.rev .st{color:#e0a100;letter-spacing:2px;margin-bottom:8px}@media(max-width:780px){.revs{grid-template-columns:1fr}}
 .adrwrap{position:relative}#adrsug{position:absolute;left:0;right:0;top:100%;z-index:30;margin-top:4px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px -12px rgba(31,42,55,.3);overflow:hidden}#adrsug button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 14px;font:inherit;font-size:.95rem;color:var(--ink,#1f2a37);cursor:pointer;min-height:44px}#adrsug button:last-child{border-bottom:0}#adrsug button:hover,#adrsug button:focus{background:#f6f1ea;outline:none}
 .mbar{display:none}
 @media(max-width:780px){.top .btn{padding:9px 16px;font-size:.95rem}.photo{aspect-ratio:4/3;max-height:300px}.mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 20px -10px rgba(31,42,55,.25)}.mbar .btn{padding:11px 18px}.mbar.weg{display:none}body{padding-bottom:72px}}
@@ -111,13 +110,6 @@ a[href="/en/"]{white-space:nowrap;display:inline-flex;align-items:center}
   <div class="card"><h3>Terug of laten ophalen</h3><p>Klaar? Breng hem terug, of laat hem ophalen: €15 in Den Haag, gratis in Den Haag vanaf 6 weken huur. Buiten Den Haag geldt het bezorgtarief. Je krijgt de volledige borg retour.</p></div>
  </div>
 </div></section>
-<section id="reviews" hidden><div class="wrap">
- <h2>Ervaringen van huurders</h2>
- <p class="lead">Echte reviews van klanten.</p>
- <div class="revs" id="revs"></div>
- <p id="revmore" hidden style="margin-top:16px"><a href="#" id="revlink">Alle reviews op Google</a></p>
-</div></section>
-
 <section class="alt" id="reserveren"><div class="wrap">
  <h2>Reserveren</h2>
  <p style="color:var(--muted);margin-top:0">Vul alles in: periode, adres en tijdvak. Je ziet meteen of de kniestep vrij is. Daarna betaal je de huur en bezorgkosten direct online met iDEAL; dan is je reservering definitief. De borg betaal je bij de overdracht.</p>
@@ -391,18 +383,6 @@ $('weken').addEventListener('blur',()=>{const v=parseInt($('weken').value);$('we
 $('adres').addEventListener('input',()=>{clearTimeout(tmr);tmr=setTimeout(zoek,900);clearTimeout(stmr);stmr=setTimeout(suggesties,250)});
 $('adres').addEventListener('keydown',e=>{if(e.key==='Escape')$('adrsug').hidden=true});
 try{$('start').min=new Date().toISOString().slice(0,10)}catch(e){}
-// REVIEWS: alleen echte reviews, letterlijk en met toestemming. Leeg = sectie blijft verborgen.
-// Voorbeeld: {tekst:'…letterlijke tekst…', naam:'Voornaam', plaats:'Den Haag', maand:'december 2026'}
-// Sterren staan standaard op 5. Gaf de klant er minder, voeg dan sterren:4 (of 3 …) toe.
-const REVIEWS=[];
-const REVIEW_LINK=''; // bv. link naar je Google Bedrijfsprofiel-reviews
-(()=>{if(!REVIEWS.length)return;const box=$('revs');
- REVIEWS.slice(0,6).forEach(r=>{const c=document.createElement('figure');c.className='card rev';
-  const s=Math.max(1,Math.min(5,r.sterren??5)),st=document.createElement('div');st.className='st';st.textContent='★'.repeat(s)+'☆'.repeat(5-s);st.setAttribute('aria-label',s+' van 5 sterren');
-  const q=document.createElement('blockquote');q.textContent='“'+r.tekst+'”';
-  const w=document.createElement('figcaption');w.className='wie';w.textContent=[r.naam,r.plaats,r.maand].filter(Boolean).join(' · ');
-  c.append(st,q,w);box.append(c)});
- $('reviews').hidden=false;if(REVIEW_LINK){$('revlink').href=REVIEW_LINK;$('revmore').hidden=false}})();
 try{new IntersectionObserver(e=>$('mbar').classList.toggle('weg',e.some(x=>x.isIntersecting))).observe($('reserveren'))}catch(e){}
 upd();
 </script>
