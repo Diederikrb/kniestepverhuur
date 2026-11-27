@@ -121,7 +121,6 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
     <div><label for="email">Email</label><input id="email" type="email" required placeholder="name@example.com" autocomplete="email"></div>
    </div>
    <label for="tel">Phone</label><input id="tel" type="tel" required placeholder="06 ..." autocomplete="tel">
-   <input id="web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
    <label for="slot">Delivery time slot</label>
    <select id="slot"><option>Morning (9-12)</option><option>Afternoon (12-17)</option><option>Evening (17-20)</option></select>
    <label for="adres">Delivery address</label>
@@ -293,12 +292,12 @@ function upd(){
  const adr=geo&&geo.ok?geo.naam:($('adres').value||'(adres)');
  const msg='Hoi! Ik wil graag een kniestep reserveren.\nNaam: '+($('naam').value||'')+'\nE-mail: '+($('email').value||'')+'\nTelefoon: '+($('tel').value||'')+'\nStart: '+s+'\nPeriode: '+w+' weken (terug op '+e+')\nTijdvak: '+$('slot').value+'\nBezorgadres: '+adr+'\nHuur: '+f(huur)+'\nBezorging: '+(bz0===null?'to be determined':f(bz0)+(b?' ('+b.txt+')':''))+'\nNa afloop: '+(oph?'ophalen'+(op===null?'':' ('+(op===0?'free':f(op))+')'):'zelf terugbrengen')+'\nTotaal: '+(bz===null?f(huur)+' + delivery':f(huur+bz))+' + €40 borg\nIk ga akkoord met de huurvoorwaarden.';
  mailtoUrl='mailto:kniestepverhuur@outlook.com?subject='+encodeURIComponent('Reservering kniestep'+($('naam').value?' – '+$('naam').value:''))+'&body='+encodeURIComponent(msg);
- window._res={naam:$('naam').value.trim(),email:$('email').value.trim(),tel:$('tel').value.trim(),start:$('start').value,weken:w,slot:$('slot').value,adres:adr,huur:f(huur),bezorg:(bz0===null?'to be determined':f(bz0)+(b?' ('+b.txt+')':''))+(oph?' + collection '+(op===null?'t.b.d.':(op===0?'free':f(op))):' / customer returns'),bedrag:bz===null?null:huur+bz,totaal:(bz===null?f(huur)+' + delivery':f(huur+bz))+' + €40 deposit',web:$('web').value,ophalen:oph,taal:LANG};
+ window._res={naam:$('naam').value.trim(),email:$('email').value.trim(),tel:$('tel').value.trim(),start:$('start').value,weken:w,slot:$('slot').value,adres:adr,huur:f(huur),bezorg:(bz0===null?'to be determined':f(bz0)+(b?' ('+b.txt+')':''))+(oph?' + collection '+(op===null?'t.b.d.':(op===0?'free':f(op))):' / customer returns'),bedrag:bz===null?null:huur+bz,totaal:(bz===null?f(huur)+' + delivery':f(huur+bz))+' + €40 deposit',web:'',ophalen:oph,taal:LANG};
 }
 async function wacht(ev){
  ev.preventDefault();const er=$('err'),m=$('email').value.trim();er.style.color='#ffc9b3';
  if(!/^\S+@\S+\.\S+$/.test(m)){er.textContent='Please enter your email address first.';er.style.display='block';return}
- try{await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({type:'wachtlijst',email:m,start:$('start').value,weken:window._res.weken,web:$('web').value})});
+ try{await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({type:'wachtlijst',email:m,start:$('start').value,weken:window._res.weken,web:''})});
   er.style.color='#b9f3c4';er.textContent='You are on the waiting list. I will email you if a knee scooter becomes available.';}
  catch(x){er.textContent='That did not work. Please email kniestepverhuur@outlook.com.';}
  er.style.display='block';

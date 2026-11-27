@@ -77,7 +77,9 @@ function vandaagAantal(s) {
 function doPost(e) {
   let p;
   try { p = JSON.parse(e.postData.contents); } catch (x) { return uit({ ok: false, fout: 'ongeldig' }); }
-  if (p.web) return uit({ ok: true }); // spam-val
+  // Spam-val: niet meer stil weggooien (browsers vullen zo'n veld soms automatisch in).
+  // Reservering wordt opgeslagen met status 'controleren', zonder klantmail.
+  const verdacht = !!p.web;
   const email = netjes(p.email, 120);
   if (!/^\S+@\S+\.\S+$/.test(email)) return uit({ ok: false, fout: 'onvolledig' });
   const startOk = /^\d{4}-\d{2}-\d{2}$/.test(p.start || '');
@@ -115,13 +117,13 @@ function doPost(e) {
     if (vol.some(k => k >= p.start && k <= eind)) return uit({ ok: false, fout: 'vol', vol: vol });
     const s = blad();
     druk = vandaagAantal(s) >= MAX_PER_DAG;
-    s.appendRow([new Date(), naam, "'" + tel, email, new Date(p.start + 'T12:00:00'), new Date(eind + 'T12:00:00'), w, slot, adres, huur, bezorg, totaal, '', en ? 'en' : 'nl', ophalen ? 'ja' : 'nee', '', '']);
+    s.appendRow([new Date(), naam, "'" + tel, email, new Date(p.start + 'T12:00:00'), new Date(eind + 'T12:00:00'), w, slot, adres, huur, bezorg, totaal, verdacht ? 'controleren' : '', en ? 'en' : 'nl', ophalen ? 'ja' : 'nee', '', '']);
     SpreadsheetApp.flush();
   } finally { lock.releaseLock(); }
 
   const R = { naam, email, tel, start: p.start, eind, w, slot, adres, huur, bezorg, totaal, bedrag, link, en, ophalen };
   try { mailEigenaar(R, druk); } catch (x) { console.error(x); }
-  if (!druk) {
+  if (!druk && !verdacht) {
     try { mailKlant(R); } catch (x) { console.error(x); }
     try { agenda(R); } catch (x) { console.error(x); }
   }
