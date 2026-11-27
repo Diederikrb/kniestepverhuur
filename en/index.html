@@ -66,9 +66,10 @@ details{background:#fff;border:1px solid var(--line);border-radius:14px;padding:
 summary{font-weight:600;cursor:pointer}
 details p{color:var(--muted);margin:.6em 0 0}
 footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
-.top>span{display:flex;align-items:center;gap:14px;flex-wrap:nowrap}
+.top>span{display:flex;align-items:center;gap:14px;flex-wrap:nowrap;margin-left:12px}
 #akk{width:22px!important;height:22px;accent-color:var(--accent)}
 .rev{margin:0}.revs{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.rev blockquote{margin:0 0 12px;font-size:1.02rem}.rev .wie{color:var(--muted);font-size:.92rem}.rev .st{color:#e0a100;letter-spacing:2px;margin-bottom:8px}@media(max-width:780px){.revs{grid-template-columns:1fr}}
+.adrwrap{position:relative}#adrsug{position:absolute;left:0;right:0;top:100%;z-index:30;margin-top:4px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px -12px rgba(31,42,55,.3);overflow:hidden}#adrsug button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 14px;font:inherit;font-size:.95rem;color:var(--ink,#1f2a37);cursor:pointer;min-height:44px}#adrsug button:last-child{border-bottom:0}#adrsug button:hover,#adrsug button:focus{background:#f6f1ea;outline:none}
 .mbar{display:none}
 @media(max-width:780px){.top .btn{padding:9px 16px;font-size:.95rem}.photo{aspect-ratio:4/3;max-height:300px}.mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 20px -10px rgba(31,42,55,.25)}.mbar .btn{padding:11px 18px}.mbar.weg{display:none}body{padding-bottom:72px}}
 @media(max-width:780px){.hero,.book{grid-template-columns:1fr}.grid3,.steps{grid-template-columns:1fr}.features{grid-template-columns:1fr}.hero{padding-top:10px}}
@@ -132,7 +133,7 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:.9rem;text-align:center}
    <label for="slot">Delivery time slot</label>
    <select id="slot"><option>Morning (9-12)</option><option>Afternoon (12-17)</option><option>Evening (17-20)</option></select>
    <label for="adres">Delivery address</label>
-   <input id="adres" placeholder="Street and house number, town (or postcode + house number)" autocomplete="street-address">
+   <div class="adrwrap"><input id="adres" placeholder="Street and house number, town (or postcode + house number)" autocomplete="off"><div id="adrsug" role="listbox" hidden></div></div>
    <p class="note" id="adrinfo" style="margin:6px 0 0;font-size:.88rem;color:var(--muted)">Enter your address to see the delivery fee.</p>
    <label for="retour">Afterwards</label>
    <select id="retour"><option value="0">I will return the knee scooter myself (free)</option><option value="1">Have it collected</option></select>
@@ -217,24 +218,66 @@ function bezorg(){
  const km=Math.round(afstand(DH,geo.pt)*1.3);
  return {bz:Math.round((15+km*0.35)*2)/2,txt:'approx. '+km+' km from The Hague',km};
 }
-function klopt(q,naam){const n=naam.toLowerCase().replace(/\s/g,''),pc=q.replace(/\s/g,'').match(/\d{4}[a-z]{2}/i);if(pc)return n.includes(pc[0].toLowerCase());const s=(q.toLowerCase().match(/[a-z\u00e0-\u00ff'.-]{3,}/)||[''])[0];return !!s&&n.includes(s.replace(/\s/g,''))}
+const T={"leeg": "Enter your address to see the delivery fee.", "zoeken": "Looking up address…", "niet": "Address not found. Please check street, house number and town, or pick an address from the list.", "gevonden": "Found: ", "buiten": " — sorry, I do not deliver outside Zuid-Holland. Feel free to email me.", "fout": "The delivery fee could not be calculated; I will work it out after your request."};
+const PDOK='https://api.pdok.nl/bzk/locatieserver/search/v3_1/',FL='&fl=id,weergavenaam,centroide_ll,gemeentenaam,provincienaam';
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+const STOP=new Set(['straat','laan','weg','plein','den','van','der','het','de','the']);
+// Invoer opschonen: 'spui70' -> 'spui 70', afkortingen voluit, Den Haag/Scheveningen -> 's-Gravenhage (naam in de BAG)
+const AFK={'pr':'prinses','kon':'koningin','burg':'burgemeester','st':'sint','v':'van','mgr':'monseigneur','prof':'professor'};
+function prep(q){return q.replace(/([a-z])(\d)/gi,'$1 $2').replace(/\b(pr|kon|burg|st|v|mgr|prof)\.?(?=\s)/gi,(m,a)=>AFK[a.toLowerCase()]).replace(/\b(den haag|the hague|scheveningen|loosduinen|ypenburg)\b/gi,"'s-Gravenhage")}
+const PC=/\b\d{4}\s?[a-z]{2}\b/i;
+// Huisnummer = laatste losse getal (+ eventuele letter), na weghalen van de postcode
+function hnr(q){const a=[...q.replace(PC,' ').matchAll(/(?<![\d])(\d+)\s*([a-z])?(?![a-z\d])/gi)];return a.length?a[a.length-1]:null}
+// Klopt de PDOK-uitkomst met wat er getypt is? Zelfde huisnummer (+ letter), en de postcode klopt of alle woorden komen erin voor (een tikfout in de postcode mag)
+function klopt(q,naam){const n=norm(naam),pc=q.match(PC),m=hnr(q);if(!m)return false;
+ const h=naam.match(/\s(\d+)([a-z]?)/i);if(!h||h[1]!==m[1])return false;
+ if(m[2]&&h[2].toLowerCase()!==m[2].toLowerCase())return false;
+ if(pc&&n.includes(pc[0].replace(/\s/g,'').toLowerCase()))return true;
+ const t=(q.replace(PC,' ').replace(/\d+[a-z]?/gi,' ').toLowerCase().match(/[a-zà-ÿ]{3,}/g)||[]).map(norm).filter(w=>!STOP.has(w));
+ return t.length>0&&t.every(w=>n.includes(w))}
+// Exact huisnummer (zonder toevoeging) eerst
+const exact=(q,naam)=>{const m=hnr(q);return m&&new RegExp('\\s'+m[1]+(m[2]||'')+',','i').test(naam)?0:1};
+async function vind(q){
+ for(const fq of ['&fq=provincienaam:%22Zuid-Holland%22','']){
+  const r=await fetch(PDOK+'free?rows=10&fq=type:adres'+fq+FL+'&q='+encodeURIComponent(q));
+  const docs=(await r.json()).response.docs.filter(d=>klopt(q,d.weergavenaam)).sort((a,b)=>exact(q,a.weergavenaam)-exact(q,b.weergavenaam));
+  if(docs.length&&!exact(q,docs[0].weergavenaam))return docs[0];
+  // geen exact huisnummer in de top 10: probeer de suggesties
+  const s=(await (await fetch(PDOK+'suggest?rows=10&fq=type:adres'+fq+'&q='+encodeURIComponent(q))).json()).response.docs.find(d=>klopt(q,d.weergavenaam)&&!exact(q,d.weergavenaam));
+  if(s){const x=(await (await fetch(PDOK+'lookup?id='+encodeURIComponent(s.id)+FL)).json()).response.docs[0];if(x)return x}
+  if(docs.length)return docs[0]}
+ return null}
+function zet(d){const m=d.centroide_ll.match(/POINT\(([\d.]+) ([\d.]+)\)/);
+ geo={ok:true,naam:d.weergavenaam,gem:d.gemeentenaam,prov:d.provincienaam,pt:[parseFloat(m[2]),parseFloat(m[1])]};
+ const b=bezorg();$('adrinfo').textContent=T.gevonden+geo.naam+(b.bz===null?T.buiten:' — '+b.txt+'.')}
 async function zoek(){
- const q=$('adres').value.trim(),n=++seq;
- if(q.length<6){geo=null;$('adrinfo').textContent='Enter your address to see the delivery fee.';upd();return}
- $('adrinfo').textContent='Looking up address…';
+ const raw=$('adres').value.trim(),n=++seq;
+ if(raw.length<5){geo=null;$('adrinfo').textContent=T.leeg;upd();return}
+ $('adrinfo').textContent=T.zoeken;
  try{
-  const r=await fetch('https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?rows=1&fq=type:adres&fl=weergavenaam,centroide_ll,gemeentenaam,provincienaam&q='+encodeURIComponent(q));
-  let d=(await r.json()).response.docs[0];
+  const d=await vind(prep(raw));
   if(n!==seq)return;
-  if(d&&!klopt(q,d.weergavenaam))d=null;
-  if(!d){geo={ok:false};$('adrinfo').textContent='Address not found. Please check street, house number and town (or enter postcode + house number).';upd();return}
-  const m=d.centroide_ll.match(/POINT\(([\d.]+) ([\d.]+)\)/);
-  geo={ok:true,naam:d.weergavenaam,gem:d.gemeentenaam,prov:d.provincienaam,pt:[parseFloat(m[2]),parseFloat(m[1])]};
-  const b=bezorg();
-  $('adrinfo').textContent='Found: '+geo.naam+(b.bz===null?' — sorry, I do not deliver outside Zuid-Holland. Feel free to email me.':' — '+b.txt+'.');
- }catch(e){geo=null;$('adrinfo').textContent='The delivery fee could not be calculated; I will work it out after your request.'}
+  if(!d){geo={ok:false};$('adrinfo').textContent=T.niet;upd();return}
+  zet(d);
+ }catch(e){geo=null;$('adrinfo').textContent=T.fout}
  upd();
 }
+// Suggesties tijdens het typen (alleen Zuid-Holland); klikken kiest het exacte adres
+let stmr=null;
+async function suggesties(){
+ const q=prep($('adres').value.trim()),box=$('adrsug');
+ if(q.length<4||!/\d/.test(q)){box.hidden=true;return}
+ try{
+  const r=await fetch(PDOK+'suggest?rows=5&fq=type:adres&fq=provincienaam:%22Zuid-Holland%22&q='+encodeURIComponent(q));
+  const docs=(await r.json()).response.docs;
+  box.replaceChildren(...docs.map(d=>{const b=document.createElement('button');b.type='button';b.textContent=d.weergavenaam;
+   b.addEventListener('click',async()=>{box.hidden=true;$('adres').value=d.weergavenaam;const n=++seq;clearTimeout(tmr);$('adrinfo').textContent=T.zoeken;
+    try{const x=(await (await fetch(PDOK+'lookup?id='+encodeURIComponent(d.id)+FL)).json()).response.docs[0];if(n!==seq||!x)return;zet(x)}catch(e){geo=null;$('adrinfo').textContent=T.fout}upd()});
+   return b}));
+  box.hidden=!docs.length;
+ }catch(e){box.hidden=true}
+}
+document.addEventListener('click',e=>{if(!e.target.closest('#adrsug,#adres'))$('adrsug').hidden=true});
 function upd(){
  const raw=parseInt($('weken').value),w=Math.min(26,Math.max(2,raw||2));
  wkMsg=raw<2?'Minimum 2 weeks: I have calculated 2 weeks.':(raw>26?'Maximum 26 weeks online. Need longer? Email me.':'');
@@ -300,7 +343,8 @@ $('wa').addEventListener('click',async ev=>{
 });
 ['naam','email','tel','start','weken','slot','retour'].forEach(i=>{$(i).addEventListener('input',upd);$(i).addEventListener('change',upd)});
 $('weken').addEventListener('blur',()=>{const v=parseInt($('weken').value);$('weken').value=Math.min(26,Math.max(2,v||2));upd()});
-$('adres').addEventListener('input',()=>{clearTimeout(tmr);tmr=setTimeout(zoek,700)});
+$('adres').addEventListener('input',()=>{clearTimeout(tmr);tmr=setTimeout(zoek,900);clearTimeout(stmr);stmr=setTimeout(suggesties,250)});
+$('adres').addEventListener('keydown',e=>{if(e.key==='Escape')$('adrsug').hidden=true});
 try{$('start').min=new Date().toISOString().slice(0,10)}catch(e){}
 // REVIEWS: alleen echte reviews, letterlijk en met toestemming. Leeg = sectie blijft verborgen.
 // Voorbeeld: {tekst:'…letterlijke tekst…', naam:'Voornaam', plaats:'Den Haag', maand:'december 2026'}
