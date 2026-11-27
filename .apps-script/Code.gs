@@ -2,6 +2,7 @@
 // Kolom M (Status): zet "geannuleerd" om een reservering vrij te geven.
 // Eenmalig: voer setup() uit. Optioneel bij Projectinstellingen > Scripteigenschappen:
 //   START_ADRES = vertrekadres voor de reistijd, REVIEW_URL = link naar je Google-reviews.
+const SHEET_ID = '1RqGoUG2nLT2gCK7lYnsjt0hIzw_XKORaQcFoeZrAraQ';
 const CAP = 2;
 const MAIL = 'kniestepverhuur@outlook.com';
 const TZ = 'Europe/Amsterdam';
@@ -13,12 +14,12 @@ const SLOTS = [[/ochtend|morning/i, 9, 12], [/middag|afternoon/i, 12, 17], [/avo
 
 function prop(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
 function blad() {
-  const s = SpreadsheetApp.getActive().getSheets()[0];
+  const s = SpreadsheetApp.openById(SHEET_ID).getSheets()[0];
   if (s.getLastRow() === 0) { s.appendRow(KOP); s.setFrozenRows(1); s.getRange('E:F').setNumberFormat('dd-mm-yyyy'); }
   return s;
 }
 function wachtblad() {
-  const ss = SpreadsheetApp.getActive();
+  const ss = SpreadsheetApp.openById(SHEET_ID);
   let s = ss.getSheetByName('Wachtlijst');
   if (!s) { s = ss.insertSheet('Wachtlijst'); s.appendRow(['Ontvangen', 'E-mail', 'Gewenste start', 'Weken']); s.setFrozenRows(1); }
   return s;
@@ -102,7 +103,7 @@ function mailEigenaar(R, druk) {
       '\nHuur: ' + R.huur + '\nBezorging: ' + R.bezorg + '\nTotaal: ' + R.totaal + '\nNa afloop: ' + (R.ophalen ? 'ophalen' : 'klant brengt terug') +
       (R.link ? '\n\nBetaallink die de klant kreeg: ' + R.link + '\nControleer in bunq of de betaling binnen is.' : '\n\nBezorgkosten onbekend: stuur de klant zelf een betaallink.') +
       (druk ? '\n\nLET OP: veel reserveringen vandaag. Deze klant kreeg GEEN automatische bevestiging en er is geen agenda-item gemaakt.' : '') +
-      '\n\nAnnuleert de klant? Zet in de sheet bij Status "geannuleerd".\n' + SpreadsheetApp.getActive().getUrl()
+      '\n\nAnnuleert de klant? Zet in de sheet bij Status "geannuleerd".\n' + SpreadsheetApp.openById(SHEET_ID).getUrl()
   });
 }
 
