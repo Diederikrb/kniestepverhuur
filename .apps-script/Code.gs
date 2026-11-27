@@ -42,7 +42,7 @@ function volleDagen() {
 }
 
 // Prijs altijd op de server berekenen; het bedrag uit de browser is niet te vertrouwen.
-function huurVan(w) { let h = 0; for (let i = 1; i <= w; i++) h += i <= 2 ? 25 : (i <= 6 ? 20 : 15); return h; }
+function huurVan(w) { let h = 0; for (let i = 1; i <= w; i++) h += 25; return h; }
 function euro(v) { return '€' + (Number.isInteger(v) ? v : v.toFixed(2).replace('.', ',')); }
 function geoZoek(adres) {
   try {
